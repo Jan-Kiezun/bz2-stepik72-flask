@@ -51,12 +51,15 @@ async def get_all_employees():
 @app.route("/employees", methods=["POST"])
 async def create_employee():
     data = request.get_json()
-    firstname = data["firstname"]
-    lastname = data["lastname"]
-    age = data["age"]
-    salary = data["salary"]
-    department = data["department"]
-    position = data["position"]
+    [firstname, lastname, age, salary, department, position] = [
+        data.get(key) for key in data.keys()
+    ]
+    # firstname = data["firstname"]
+    # lastname = data["lastname"]
+    # age = data["age"]
+    # salary = data["salary"]
+    # department = data["department"]
+    # position = data["position"]
     async with driver.session() as session:
         query = "MERGE (n:Employee {firstname:$firstname,lastname:$lastname,age:$age,salary:$salary,department:$department,position:$position}) MERGE (d:Department {name:$department}) MERGE (n)-[:WORKS_IN]->(d)"
         await session.run(
