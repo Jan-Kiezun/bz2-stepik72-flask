@@ -1,4 +1,4 @@
-﻿from flask import Flask
+﻿from flask import Flask, request, jsonify
 from neo4j import GraphDatabase, basic_auth
 from neo4j._async.driver import AsyncGraphDatabase
 
@@ -36,3 +36,16 @@ async def get_all_employees():
         data = await coroutine.data()
         await session.close()
         return str(data)
+
+
+@app.route("/employees", methods=["POST"])
+async def create_employee():
+    data = request.get_json()
+    async with driver.session() as session:
+        # query = f"CREATE (n:Employee) SET n={data}"
+        query = f"MATCH (n:Employee) RETURN n"
+        coroutine = await session.run(query)
+        # data = await coroutine.data()
+        print(data["data"])
+        await session.close()
+        return "Employee created successfully"
