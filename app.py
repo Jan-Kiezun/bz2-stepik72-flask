@@ -2,6 +2,7 @@
 from neo4j import GraphDatabase, basic_auth
 from neo4j._async.driver import AsyncGraphDatabase
 import asyncio
+import re
 
 app = Flask(__name__)
 driver = AsyncGraphDatabase.driver(
@@ -128,3 +129,36 @@ async def get_department_info(id):
 
         await session.close()
     return str(department_info)
+
+
+@app.route("/departments", methods=["GET"])
+async def get_all_departments():
+    filter_option = request.args.get("filter")
+    sort_key = request.args.get("sort")
+    if filter_option:
+        [filter_key, filter_value] = filter_option.split("-")
+
+    async with driver.session() as session:
+        whereClause = f'WHERE n.{filter_key}="{filter_value}"' if filter_option else ""
+        orderClause = (
+            f", {sort_key} as c ORDER BY c"
+            if re.match("^count", sort_key)
+            else f"ORDER BY n.{sort_key}"
+            if sort_key
+            else ""
+        )
+        query = f"MATCH (employee:Employee)-[r:WORKS_IN]->(n:Department) {whereClause} RETURN n {orderClause}"
+        coroutine = await session.run(query)
+        data = await coroutine.data()
+        await session.close()
+        return str(data)
+
+
+@app.route("/departments/<id>/employees", methods=["GET"])
+async def get_employees_by_department(id):
+    async with driver.session() as session:
+        query = f"MATCH (e:Employee)-[:WORKS_IN]->(d:Department) WHERE ID(d) = {id} RETURN e"
+        coroutine = await session.run(query)
+        data = await coroutine.data()
+        await session.close()
+        return str(data)
